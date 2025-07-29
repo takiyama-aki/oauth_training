@@ -1,0 +1,15 @@
+# --- Go ---
+/bin/
+/dist/
+/coverage.out
+# --- Node/React ---
+node_modules/
+/build/
+/dist-frontend/
+/.env
+.env.*
+# --- IDE ---
+.vscode/
+.idea/
+.DS_Store
+EOF
