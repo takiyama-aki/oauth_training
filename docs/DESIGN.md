@@ -25,12 +25,13 @@
 ## 4. 認証フロー
 
 1. フロントの「Googleでログイン」ボタン押下
-2. `/auth/google/login` エンドポイントにリダイレクト
+2. `GET /auth/google/login` エンドポイントにリダイレクト
 3. サーバー側で OAuth 認証 URL 生成 → Google へ遷移
-4. 認証後、`/auth/google/callback` でアクセストークン受け取り
+4. 認証後、`GET /auth/google/callback` でアクセストークン受け取り
 5. ユーザー情報取得後、DB に登録／更新
 6. JWT (アクセストークン) をレスポンス (`{ "token": "<jwt>" }`)
 7. フロントで認証済み画面へリダイレクト
+8. アクセストークン期限切れ時は、`POST /auth/refresh` を呼び出し、HttpOnly Cookie 内のリフレッシュトークンを利用して新しい JWT を取得
 
 ## 5. データベース設計
 
@@ -76,22 +77,24 @@ CREATE TABLE contents (
   created_at TIMESTAMP NOT NULL DEFAULT now()
 );
 ```
+
 * `ON DELETE CASCADE` により、ユーザー削除時に紐づくコンテンツも自動削除
 * 必要に応じてインデックスを追加: `CREATE INDEX idx_contents_user ON contents(user_id);`
 
 ## 6. API 設計
 
-| メソッド   | パス                    | 説明                    |
-| ------ | --------------------- | --------------------- |
-| GET    | /auth/google/login    | Google OAuth 認証開始     |
-| GET    | /auth/google/callback | Google OAuth コールバック処理 |
-| POST   | /auth/logout          | ログアウト処理               |
-| DELETE | /api/user             | アカウント削除 (ユーザー＋コンテンツ)  |
-| GET    | /api/user             | 認証済みユーザー情報取得          |
-| GET    | /api/contents         | コンテンツ一覧取得 (ユーザー単位)    |
-| POST   | /api/contents         | コンテンツ新規登録             |
-| PUT    | /api/contents/\:id    | コンテンツ更新               |
-| DELETE | /api/contents/\:id    | コンテンツ削除               |
+| メソッド   | パス                    | 説明                     |
+| ------ | --------------------- | ---------------------- |
+| GET    | /auth/google/login    | Google OAuth 認証開始      |
+| GET    | /auth/google/callback | Google OAuth コールバック処理  |
+| POST   | /auth/refresh         | リフレッシュトークンによる JWT 再発行  |
+| POST   | /auth/logout          | ログアウト処理（リフレッシュトークン無効化） |
+| DELETE | /api/user             | アカウント削除 (ユーザー＋コンテンツ)   |
+| GET    | /api/user             | 認証済みユーザー情報取得           |
+| GET    | /api/contents         | コンテンツ一覧取得 (ユーザー単位)     |
+| POST   | /api/contents         | コンテンツ新規登録              |
+| PUT    | /api/contents/\:id    | コンテンツ更新                |
+| DELETE | /api/contents/\:id    | コンテンツ削除                |
 
 ## 7. フロントエンド構成
 
@@ -146,7 +149,7 @@ oauth_training/
 
 ```mermaid
 flowchart TD
-  LoginPage["ログイン画面(LoginPage)"] -->|Googleでログインボタン押下| AuthCallback[("/auth/google/callback")]
+  LoginPage["ログイン画面(LoginPage)"] -->|Googleでログインボタン押下| AuthCallback["/auth/google/callback"]
   AuthCallback -->|認証成功| Dashboard["ダッシュボード(Dashboard)"]
   Dashboard -->|「コンテンツ一覧を見る」クリック| ContentListPage["コンテンツ一覧(ContentListPage)"]
   ContentListPage -->|「新規作成」ボタン押下| NewContentPage["コンテンツ新規作成(NewContentPage)"]
@@ -158,7 +161,7 @@ flowchart TD
   SettingsPage -->|「アカウント削除」ボタン押下| LoginPage
 ```
 
-## 11. UI / 機能実装概要. UI / 機能実装概要
+## 11. UI / 機能実装概要
 
 ### 11.1 コンテンツ表示（一覧）
 
@@ -187,9 +190,48 @@ flowchart TD
 ### 11.6 ログアウト
 
 * フロント: `SettingsPage` の「ログアウト」クリック → `POST /auth/logout` → クライアント側で JWT を削除 → `LoginPage` へリダイレクト
-* バック: `POST /auth/logout` エンドポイントでステータス 200 を返却
+* バック: `POST /auth/logout` エンドポイントでステータス 200 を返却 (リフレッシュトークン無効化含む)
 
 ### 11.7 アカウント削除
 
 * フロント: `SettingsPage` の「アカウント削除」クリック → `DELETE /api/user` → クライアント側で JWT を削除 → `LoginPage` へリダイレクト
 * バック: `DELETE /api/user` エンドポイントで users テーブルから該当レコードを削除 (ON DELETE CASCADE により contents も自動削除)
+
+## 12. セキュリティ・エラー対応
+
+### 12.1 JWTの有効期限・リフレッシュトークン対応
+
+* アクセストークン（JWT）は短命（例：15分）とし、
+  API呼び出し時は `Authorization: Bearer <token>` ヘッダーで送信
+* リフレッシュトークンを `HttpOnly, Secure` 属性付きの cookie にセットし、
+  `POST /auth/refresh` エンドポイントで新しいアクセストークンを発行
+
+### 12.2 ログアウト・トークン無効化／ブラックリスト
+
+* `POST /auth/logout` 呼び出し時にサーバー側でリフレッシュトークンを無効化
+* リフレッシュトークン（またはトークンID）を Redis 等でブラックリスト登録
+* 各API呼び出し時にミドルウェアでトークンの有効期限・ブラックリスト登録をチェック
+
+### 12.3 CORS・CSRF対策
+
+* Gin の CORS ミドルウェアで許可オリジン、許可メソッド、許可ヘッダー、
+  `Allow-Credentials=true` を明示的に設定
+* OAuth コールバック時の `state` パラメータ検証を必須化
+* Cookie を利用するエンドポイントには CSRF トークンを付与し、
+  SameSite属性や CSRF ミドルウェアで二重チェック
+
+### 12.4 エラーハンドリング
+
+* **ログイン失敗**
+
+  * レスポンス: HTTP 401
+  * ボディ: `{ "error": "ログインに失敗しました" }`
+* **アカウント作成失敗**
+
+  * レスポンス: HTTP 400/500
+  * ボディ: `{ "error": "アカウント作成に失敗しました" }`
+* **データ登録失敗**
+
+  * レスポンス: HTTP 400/500
+  * ボディ: `{ "error": "データ登録に失敗しました" }`
+* フロントエンドでは各エラー時にトーストやモーダルでユーザーへ通知
