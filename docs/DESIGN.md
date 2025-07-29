@@ -117,16 +117,19 @@ frontend/src/
 ```
 oauth_training/
 ├─ backend/
+│   ├─ Dockerfile
 │   ├─ main.go
 │   ├─ handlers/
 │   ├─ models/
 │   └─ services/
 ├─ frontend/
+│   ├─ Dockerfile
 │   ├─ src/
 │   │   ├─ pages/
 │   │   ├─ components/
 │   │   └─ hooks/
 │   └─ public/
+├─ docker-compose.yml
 ├─ docs/
 │   └─ daily/
 ├─ .gitignore
@@ -140,13 +143,7 @@ oauth_training/
 3. コードレビュー → main へマージ
 4. GitHub Actions で CI 実行
 
-## 10. 次のステップ
-
-* DB マイグレーション設計 (ツール: goose など)
-* GitHub Actions の CI 定義
-* フロントの画面デザイン ワイヤーフレーム作成
-
-## 11. 画面遷移図
+## 10. 画面遷移図
 
 ```mermaid
 flowchart TD
@@ -158,28 +155,28 @@ flowchart TD
     EditContentPage --> ContentListPage
 ```
 
-## 12. UI / 機能実装概要
+## 11. UI / 機能実装概要
 
-### 12.1 コンテンツ表示（一覧）
+### 11.1 コンテンツ表示（一覧）
 
 * フロント: `GET /api/contents` → 認証ユーザーに紐づくレコード取得
 * レスポンスが空の場合: `EmptyState` コンポーネントで **"データが存在しません"** を表示
 
-### 12.2 コンテンツ登録
+### 11.2 コンテンツ登録
 
 * フロント: `NewContentPage` のテキストボックスに入力 → `POST /api/contents` に `{ content: string }` を送信
 * バック: `content` と `user_id` で `contents` テーブルに `INSERT`
 
-### 12.3 コンテンツ編集
+### 11.3 コンテンツ編集
 
 * フロント: `ContentItem` に「編集」ボタン → `EditContentPage` へ遷移し、PUT ` /api/contents/:id`
 * バック: 指定 `id` の `content` 列を更新
 
-### 12.4 コンテンツ削除
+### 11.4 コンテンツ削除
 
 * フロント: `ContentItem` に「削除」ボタン → 確認ダイアログ後 DELETE `/api/contents/:id`
 * バック: 指定 `id` のレコードを削除
 
-### 12.5 ユーザー作成時のコンテンツ初期化
+### 11.5 ユーザー作成時のコンテンツ初期化
 
 * バック: `/auth/google/callback` 内の新規ユーザー作成後に `initContentsForUser(userID)` を呼び出し、必要があれば初期レコードを `INSERT`
