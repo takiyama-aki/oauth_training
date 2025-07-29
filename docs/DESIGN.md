@@ -38,18 +38,18 @@
 ```mermaid
 erDiagram
     USERS {
-        UUID id PK "ユーザー識別子"
-        VARCHAR email UNIQUE "メールアドレス"
-        VARCHAR name "表示名"
-        VARCHAR google_id UNIQUE "Google ユーザーID"
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
+        id UUID PK
+        email VARCHAR UNIQUE
+        name VARCHAR
+        google_id VARCHAR UNIQUE
+        created_at TIMESTAMP
+        updated_at TIMESTAMP
     }
     CONTENTS {
-        UUID id PK "コンテンツ識別子"
-        UUID user_id FK "USERS.id を参照"
-        TEXT content "ユーザーが入力した文字列"
-        TIMESTAMP created_at
+        id UUID PK
+        user_id UUID FK
+        content TEXT
+        created_at TIMESTAMP
     }
     USERS ||--o{ CONTENTS : has
 ```
