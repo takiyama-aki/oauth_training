@@ -31,7 +31,7 @@ services:
       - ./backend:/app
       - /app/tmp
     ports:
-      - "8080:8080"
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
     command: ["air"]
 
   frontend:
@@ -41,7 +41,7 @@ services:
     container_name: oauth_training_frontend
     depends_on: [backend]
     environment:
-      VITE_API_URL: http://backend:8080
+      VITE_API_URL: http://backend:${BACKEND_PORT}
     volumes:
       - ./frontend:/app
       - /app/node_modules
