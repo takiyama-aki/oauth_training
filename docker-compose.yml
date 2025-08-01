@@ -4,8 +4,8 @@ services:
     image: postgres:15
     container_name: oauth_training_db
     environment:
-      POSTGRES_USER: oauth_user
-      POSTGRES_PASSWORD: oauth_pass
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
       POSTGRES_DB: oauth_db
     volumes:
       - db_data:/var/lib/postgresql/data
@@ -23,8 +23,8 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: ${DB_PORT}
-      DB_USER: oauth_user
-      DB_PASSWORD: oauth_pass
+      DB_USER: postgres
+      DB_PASSWORD: postgres
       DB_NAME: oauth_db
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
