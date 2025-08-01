@@ -1,0 +1,23 @@
+{
+  "name": "oauth-training-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@chakra-ui/react": "^2.5.1",
+    "@emotion/react": "^11.10.5",
+    "@emotion/styled": "^11.10.5",
+    "framer-motion": "^10.12.16"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.5",
+    "vite": "^4.0.0",
+    "@vitejs/plugin-react": "^3.0.0"
+  }
+}

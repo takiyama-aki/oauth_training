@@ -1,0 +1,20 @@
+# 開発用 Go (Alpine)
+FROM golang:1.21-alpine
+
+# ホットリロード用ツール air をインストール
+RUN apk add --no-cache git \
+ && go install github.com/cosmtrek/air@latest
+
+WORKDIR /app
+
+# モジュールだけ先にコピーしてキャッシュ
+COPY go.mod go.sum ./
+RUN go mod download
+
+# ソースをコピー
+COPY . ./
+
+EXPOSE 8080
+
+# air: ファイル変更検知でリビルド＆再起動
+CMD ["air", "-c", ".air.toml"]
